@@ -1,16 +1,17 @@
 #include "sc2api/sc2_api.h"
-
+#include "rapidjson/document.h"
+#include "JSONTools.h"
 #include "CCBot.h"
 #include "Util.h"
 
-CCBot::CCBot()
+CCBot::CCBot(std::string ConfigFileLocation)
     : m_map(*this)
     , m_bases(*this)
     , m_unitInfo(*this)
     , m_workers(*this)
     , m_gameCommander(*this)
     , m_strategy(*this)
-    , m_techTree(*this)
+	, m_config(ConfigFileLocation)
 {
     
 }
@@ -18,7 +19,7 @@ CCBot::CCBot()
 void CCBot::OnGameStart() 
 {
     m_config.readConfigFile();
-    
+
     // get my race
     auto playerID = Observation()->GetPlayerID();
     for (auto & playerInfo : Observation()->GetGameInfo().player_info)
@@ -32,8 +33,7 @@ void CCBot::OnGameStart()
             m_playerRace[Players::Enemy] = playerInfo.race_requested;
         }
     }
-    
-    m_techTree.onStart();
+
     m_strategy.onStart();
     m_map.onStart();
     m_unitInfo.onStart();
@@ -90,21 +90,6 @@ const UnitInfoManager & CCBot::UnitInfo() const
     return m_unitInfo;
 }
 
-const TypeData & CCBot::Data(const sc2::UnitTypeID & type) const
-{
-    return m_techTree.getData(type);
-}
-
-const TypeData & CCBot::Data(const sc2::UpgradeID & type) const
-{
-    return m_techTree.getData(type);
-}
-
-const TypeData & CCBot::Data(const BuildType & type) const
-{
-    return m_techTree.getData(type);
-}
-
 WorkerManager & CCBot::Workers()
 {
     return m_workers;
@@ -123,4 +108,61 @@ sc2::Point2D CCBot::GetStartLocation() const
 void CCBot::OnError(const std::vector<sc2::ClientError> & client_errors, const std::vector<std::string> & protocol_errors)
 {
     
+}
+
+void *CreateNewAgent(std::string ConfigFileLocation)
+{
+	return (void *) new CCBot(ConfigFileLocation);
+}
+
+int GetAgentRace(std::string ConfigFileLocation)
+{
+	rapidjson::Document doc;
+
+	std::string config = JSONTools::ReadFile(ConfigFileLocation);
+
+	if (config.length() == 0)
+	{
+		return -1;
+	}
+	bool parsingFailed = doc.Parse(config.c_str()).HasParseError();
+	if (parsingFailed)
+	{
+		return -1;
+	}
+	if (doc.HasMember("Game Info") && doc["Game Info"].IsObject())
+	{
+		std::string botRaceString;
+		const rapidjson::Value & info = doc["Game Info"];
+		JSONTools::ReadString("BotRace", info, botRaceString);
+		return (int)BotConfig::GetRace(botRaceString);
+	}
+	return -1;
+}
+
+const char *GetAgentName(std::string ConfigFileLocation)
+{
+	rapidjson::Document doc;
+
+	std::string config = JSONTools::ReadFile(ConfigFileLocation);
+
+	if (config.length() == 0)
+	{
+		return nullptr;
+	}
+	bool parsingFailed = doc.Parse(config.c_str()).HasParseError();
+	if (parsingFailed)
+	{
+		return nullptr;
+	}
+
+	if (doc.HasMember("Bot Info") && doc["Bot Info"].IsObject())
+	{
+		std::string BotName;
+		const rapidjson::Value & info = doc["Bot Info"];
+		JSONTools::ReadString("BotName", info, BotName);
+		return BotName.c_str();
+	}
+	return nullptr;
+
 }

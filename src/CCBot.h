@@ -10,8 +10,9 @@
 #include "GameCommander.h"
 #include "BuildingManager.h"
 #include "StrategyManager.h"
-#include "TechTree.h"
-#include "BuildType.h"
+
+#define DllExport   __declspec( dllexport )  
+
 
 class CCBot : public sc2::Agent 
 {
@@ -23,7 +24,6 @@ class CCBot : public sc2::Agent
     WorkerManager           m_workers;
     StrategyManager         m_strategy;
     BotConfig               m_config;
-    TechTree                m_techTree;
 
     GameCommander           m_gameCommander;
 
@@ -32,7 +32,7 @@ class CCBot : public sc2::Agent
 
 public:
 
-    CCBot();
+    CCBot(std::string ConfigFileLocation);
     void OnGameStart() override;
     void OnStep() override;
 
@@ -42,10 +42,15 @@ public:
     const MapTools & Map() const;
     const UnitInfoManager & UnitInfo() const;
     const StrategyManager & Strategy() const;
-    const TypeData & Data(const sc2::UnitTypeID & type) const;
-    const TypeData & Data(const sc2::UpgradeID & type) const;
-    const TypeData & Data(const BuildType & type) const;
     const sc2::Race & GetPlayerRace(int player) const;
     sc2::Point2D GetStartLocation() const;
     const sc2::Unit * GetUnit(const UnitTag & tag) const;
 };
+
+
+
+void DllExport *CreateNewAgent(std::string ConfigFileLocation);
+
+int DllExport GetAgentRace(std::string ConfigFileLocation);
+
+const char DllExport *GetAgentName(std::string ConfigFileLocation);

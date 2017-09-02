@@ -5,7 +5,6 @@
 
 class BotConfig
 {
-    sc2::Race GetRace(const std::string & raceName);
 
 public:
 
@@ -55,7 +54,9 @@ public:
     int BuildingSpacing;
     int PylonSpacing;
  
-    BotConfig();
+    BotConfig(std::string InConfigFileLocation);
+
+	static sc2::Race GetRace(const std::string & raceName);
 
     void readConfigFile();
 };
